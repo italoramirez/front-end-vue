@@ -1,4 +1,5 @@
 <script setup>
+const emit = defineEmits(['view', 'edit', 'delete'])
 defineProps({
   columns: {
     type: Array,

@@ -2,10 +2,10 @@
 
 import {onMounted, ref} from 'vue'
 import {reactive} from "vue";
-import Datatable from "./Datatable.vue";
-import BaseButton from "./global/BaseButton.vue";
-import router from "../router/router.js";
-import {useAuthStore} from "../store/auth.js";
+import Datatable from "../Datatable.vue";
+import BaseButton from "../global/BaseButton.vue";
+import router from "../../router/router.js";
+import {useAuthStore} from "../../store/auth.js";
 
 const apiUrl = import.meta.env.VITE_API_URL
 const auth = useAuthStore()
@@ -14,7 +14,8 @@ const student = reactive({
   name: '',
   lastname: '',
   document: '',
-  course: ''
+  course: '',
+  id: null,
 })
 
 const columns = reactive([
@@ -31,29 +32,76 @@ const data = ref([])
 const handleSubmit = async (event) => {
   event.preventDefault();
 
-  await fetch(apiUrl, {
-    method: 'POST',
+  const method = student.id ? 'PUT' : 'POST';
+  const url = student.id
+      ? `${apiUrl}/students/${student.id}`
+      : `${apiUrl}/students`;
+
+  await fetch(url, {
+    method,
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${auth.token}`
     },
     body: JSON.stringify(student)
   })
-  await allStudents()
-
-  console.log('Estudiante registrado:', student);
-
+  await allStudents();
+  console.log('Estudiante procesado:', student);
   clearForm();
 }
 
+
+const handleEdit = (row) => {
+  Object.assign(student, {
+    name: row.name || '',
+    lastname: row.lastname || '',
+    document: row.document || '',
+    age: row.age || '',
+    course: row.course || '',
+    id: row.id || null
+  });
+}
+
+
 const allStudents = async () => {
   try {
-    const response = await fetch(apiUrl, {cache: 'no-store'});
+    const response = await fetch(`${apiUrl}/students`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${auth.token}`
+      },
+      cache: 'no-store'
+    });
     if (response.ok) {
       const result = await response.json();
       data.value = Array.isArray(result) ? result : result.data;
     }
   } catch (error) {
     console.error('Error fetching students:', error);
+  }
+}
+
+const handleView = (row) => {
+  if (!row?.id) {
+    console.warn('ID del estudiante no disponible.');
+    return;
+  }
+
+  router.push({
+    name: 'StudentDetail',
+    params: { id: row.id }
+  });
+};
+const handleDelete = async (row) => {
+  if (confirm('Are you sure you want to delete this student?')) {
+    await fetch(`${apiUrl}/students/${row.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${auth.token}`
+      }
+    })
+    await allStudents()
   }
 }
 
@@ -145,6 +193,9 @@ onMounted(async () => {
       <Datatable
           :columns="columns"
           :rows="data"
+          @view="handleView"
+          @edit="handleEdit"
+          @delete="handleDelete"
       />
     </div>
   </div>

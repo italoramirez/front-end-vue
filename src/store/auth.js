@@ -1,5 +1,7 @@
-import { defineStore } from 'pinia'
+import {defineStore} from 'pinia'
+import {useRouter} from "vue-router";
 
+const apiUrl = import.meta.env.VITE_API_URL
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         user: null,
@@ -7,10 +9,19 @@ export const useAuthStore = defineStore('auth', {
     }),
     actions: {
         async login(email, password) {
-            if (email === 'admin@admin.com' && password === '1234') {
-                this.user = { email }
+            const response = await fetch(`${apiUrl}/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({email, password})
+            })
+            const data = await response.json()
+            if (response.ok) {
+                this.user = {email}
                 this.isAuthenticated = true
-                localStorage.setItem('auth', 'true')
+                localStorage.setItem('token', data.token)
+                localStorage.setItem('user', JSON.stringify(data.user))
                 return true
             } else {
                 throw new Error('Credenciales incorrectas')
@@ -19,7 +30,12 @@ export const useAuthStore = defineStore('auth', {
         async logout() {
             this.user = null
             this.isAuthenticated = false
-            localStorage.removeItem('auth')
+            localStorage.removeItem('token')
+            localStorage.removeItem('user')
         }
+    },
+    getters: {
+        token: () => localStorage.getItem('token'),
+        // user: (state) => localStorage.getItem('user')
     }
 })

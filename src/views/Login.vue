@@ -14,8 +14,8 @@ const handleLogin = async () => {
   try {
     const success = await auth.login(email.value, password.value)
     if (success) {
-      await Swal.fire('Login correcto', '', 'success')
       await router.push('/students')
+      await Swal.fire('Login correcto', '', 'success')
     }
   } catch (err) {
     await Swal.fire('Error', 'Credenciales incorrectas', 'error')
